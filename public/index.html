@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anonymous Chatroom</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            'chat-bg-light': '#f8fafc',
+            'chat-bg-dark': '#0f172a',
+            'message-bg-light': '#f1f5f9',
+            'message-bg-dark': '#1e293b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .message {
+      max-width: 80%;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .message.user-joined {
+      background-color: rgba(167, 243, 208, 0.2);
+      border: 1px solid rgba(167, 243, 208, 0.4);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+      margin: 0 2px;
+      opacity: 0.6;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+    
+    .smooth-transition {
+      transition: all 0.3s ease;
+    }
+  </style>
+</head>
+<body class="bg-chat-bg-light dark:bg-chat-bg-dark text-gray-800 dark:text-gray-200 flex flex-col h-screen">
+  <nav class="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
+      </svg>
+      <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">Anonymous Chatroom</h1>
+    </div>
+    <div class="flex items-center space-x-3">
+      <button id="toggle-mode" class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 smooth-transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+        <span>Toggle Mode</span>
+      </button>
+      <button id="new-room" class="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 smooth-transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+        </svg>
+        <span>New Room</span>
+      </button>
+      <button id="copy-link" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 smooth-transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+        </svg>
+        <span>Copy Invite</span>
+      </button>
+    </div>
+  </nav>
+  
+  <div class="flex-1 overflow-hidden flex flex-col">
+    <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Room: <span id="room-id" class="font-mono text-primary-600 dark:text-primary-400">default</span></p>
+    </div>
+    
+    <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50/50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50">
+      <div class="message bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mx-auto max-w-md text-center">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Welcome to the chatroom! Invite others by sharing the link.</p>
+      </div>
+    </div>
+    
+    <div id="typing-indicator" class="px-6 py-2 text-sm text-gray-500 dark:text-gray-400 hidden">
+      <div class="typing-indicator">
+        <span class="font-medium mr-2">Someone</span> is typing
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white dark:bg-gray-800 p-5 shadow-md flex items-center sticky bottom-0 border-t border-gray-200 dark:border-gray-700">
+    <input type="text" id="message-input" placeholder="Type your message here..." class="flex-1 p-4 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 smooth-transition">
+    <button id="send-button" class="bg-primary-500 text-white px-6 py-4 rounded-r-lg hover:bg-primary-600 smooth-transition flex items-center space-x-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+      </svg>
+      <span>Send</span>
+    </button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get room from URL or use default
+      const urlParams = new URLSearchParams(window.location.search);
+      const room = urlParams.get('room') || 'default';
+      document.getElementById('room-id').textContent = room;
+      
+      // Connect to Socket.io
+      const socket = io({
+        query: {
+          room: room
+        }
+      });
+      
+      // DOM elements
+      const chatContainer = document.getElementById('chat-container');
+      const messageInput = document.getElementById('message-input');
+      const sendButton = document.getElementById('send-button');
+      const toggleModeButton = document.getElementById('toggle-mode');
+      const newRoomButton = document.getElementById('new-room');
+      const copyLinkButton = document.getElementById('copy-link');
+      const typingIndicator = document.getElementById('typing-indicator');
+      
+      // Generate a random username for this session
+      const username = "User_" + Math.floor(Math.random() * 10000);
+      
+      // Join the room
+      socket.emit('join', username);
+      
+      // Send message on button click
+      sendButton.addEventListener('click', sendMessage);
+      
+      // Send message on Enter key
+      messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+      
+      // Typing indicators
+      let typing = false;
+      let typingTimer;
+      
+      messageInput.addEventListener('input', function() {
+        if (!typing) {
+          typing = true;
+          socket.emit('typing', username);
+        }
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(stopTyping, 2000);
+      });
+      
+      function stopTyping() {
+        typing = false;
+        socket.emit('stop typing');
+      }
+      
+      // Toggle dark/light mode
+      toggleModeButton.addEventListener('click', function() {
+        const html = document.documentElement;
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          localStorage.setItem('theme', 'dark');
+        }
+      });
+      
+      // Check for saved theme preference
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+      
+      // Create new room
+      newRoomButton.addEventListener('click', function() {
+        const newRoom = prompt('Enter a name for your new room:') || 
+                         Math.random().toString(36).substring(2, 10);
+        window.location.href = window.location.origin + window.location.pathname + '?room=' + newRoom;
+      });
+      
+      // Copy invite link
+      copyLinkButton.addEventListener('click', function() {
+        const inviteLink = window.location.origin + window.location.pathname + '?room=' + room;
+        navigator.clipboard.writeText(inviteLink)
+          .then(() => {
+            const originalText = copyLinkButton.querySelector('span').textContent;
+            copyLinkButton.querySelector('span').textContent = 'Copied!';
+            setTimeout(() => {
+              copyLinkButton.querySelector('span').textContent = originalText;
+            }, 2000);
+          });
+      });
+      
+      // Socket event handlers
+      socket.on('user joined', function(username) {
+        addMessage(`${username} joined the chat`, 'user-joined');
+      });
+      
+      socket.on('chat message', function(data) {
+        addMessage(data.text, 'other', data.username);
+      });
+      
+      socket.on('typing', function(username) {
+        typingIndicator.querySelector('span').textContent = username;
+        typingIndicator.classList.remove('hidden');
+      });
+      
+      socket.on('stop typing', function() {
+        typingIndicator.classList.add('hidden');
+      });
+      
+      // Helper functions
+      function sendMessage() {
+        const message = messageInput.value.trim();
+        if (message) {
+          socket.emit('chat message', {
+            text: message,
+            username: username
+          });
+          addMessage(message, 'self', username);
+          messageInput.value = '';
+          stopTyping();
+        }
+      }
+      
+      function addMessage(text, type, sender = 'System') {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', 'p-4', 'rounded-2xl', 'shadow-sm', 'smooth-transition');
+        
+        if (type === 'self') {
+          messageDiv.classList.add('bg-primary-500', 'text-white', 'ml-auto');
+          messageDiv.innerHTML = `
+            <div class="flex justify-end items-start space-x-2">
+              <div class="flex-1"></div>
+              <div class="bg-primary-600 rounded-2xl rounded-tr-none px-4 py-2">
+                <p>${text}</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-xs font-medium">
+                ${sender.substring(0, 1)}
+              </div>
+            </div>
+            <p class="text-xs text-primary-100 text-right mt-1">${sender}</p>
+          `;
+        } else if (type === 'other') {
+          messageDiv.classList.add('bg-white', 'dark:bg-gray-800', 'mr-auto');
+          messageDiv.innerHTML = `
+            <div class="flex justify-start items-start space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium">
+                ${sender.substring(0, 1)}
+              </div>
+              <div class="bg-message-bg-light dark:bg-message-bg-dark rounded-2xl rounded-tl-none px-4 py-2">
+                <p>${text}</p>
+              </div>
+              <div class="flex-1"></div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${sender}</p>
+          `;
+        } else if (type === 'user-joined') {
+          messageDiv.classList.add('user-joined', 'mx-auto', 'text-center', 'max-w-md');
+          messageDiv.innerHTML = `
+            <p class="text-sm text-green-600 dark:text-green-400">${text}</p>
+          `;
+        }
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+  </script>
+</body>
+</html>
